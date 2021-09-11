@@ -53,6 +53,7 @@ runs:
       if: ${{ inputs.mw == 'master' }}
       run: |
         npm run lint:i18n
+      shell: bash
     - name: Cache MediaWiki
       id: cache-mediawiki
       uses: actions/cache@v2
