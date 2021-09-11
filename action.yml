@@ -41,12 +41,14 @@ runs:
         composer validate
         composer update
         npm install --save-dev
+      shell: bash
     - name: Check PHP
       if: ${{ inputs.mw == 'master' }}
       run: |
         sh phpcbf.sh
         composer fix
         composer test
+      shell: bash
     - name: Check i18n
       if: ${{ inputs.mw == 'master' }}
       run: |
@@ -70,6 +72,7 @@ runs:
     - name: Download MediaWiki
       if: steps.cache-mediawiki.outputs.cache-hit != 'true'
       run: bash .github/workflows/download-mediawiki.sh ${{ inputs.mw }} ${{ inputs.repo }}
+      shell: bash
 
     - name: Clone extension dependencies
       if: ${{ inputs.repo != 'miraheze' }}
@@ -79,6 +82,7 @@ runs:
         git clone https://github.com/wikimedia/mediawiki-extensions-BlogPage.git --depth=1 mediawiki/extensions/BlogPage
         git clone https://github.com/wikimedia/mediawiki-extensions-SocialProfile.git --depth=1 mediawiki/extensions/SocialProfile
         git clone https://github.com/Universal-Omega/SimpleBlogPage.git --depth=1 mediawiki/extensions/SimpleBlogPage
+      shell: bash
     - name: Checkout extension dependencies
       if: ${{ inputs.repo == 'miraheze' }}
       run: |
@@ -88,10 +92,12 @@ runs:
         git submodule update --init extensions/BlogPage
         git submodule update --init extensions/SimpleBlogPage
         git submodule update --init extensions/SocialProfile
+      shell: bash
     - name: Run phan
       continue-on-error: ${{ inputs.continue-on-error }}
       run: |
         composer phan
+      shell: bash
     # Only patch code when it is a push event
     - name: Push the changes
       if: github.event_name == 'push' && inputs.mw == 'master'
@@ -105,3 +111,4 @@ runs:
         git commit -am "CI: lint code to MediaWiki standards" -m "Check commit and GitHub actions for more details" || echo "No changes to commit"
         git pull --rebase
         git push
+      shell: bash
