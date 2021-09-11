@@ -25,82 +25,82 @@ inputs:
     default: false
 
 runs:
-    steps:
-      - uses: actions/checkout@v2
+  steps:
+    - uses: actions/checkout@v2
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ inputs.php }}
-          extensions: intl,ast
-          tools: composer:${{ inputs.composer }}
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ inputs.php }}
+        extensions: intl,ast
+        tools: composer:${{ inputs.composer }}
 
-      - name: Install dependencies
-        run: |
-          composer validate
-          composer update
-          npm install --save-dev
-      - name: Check PHP
-        if: ${{ inputs.mw == 'master' }}
-        run: |
-          sh phpcbf.sh
-          composer fix
-          composer test
-      - name: Check i18n
-        if: ${{ inputs.mw == 'master' }}
-        run: |
-          npm run lint:i18n
-      - name: Cache MediaWiki
-        id: cache-mediawiki
-        uses: actions/cache@v2
-        with:
-          path: |
-            mediawiki
-            !mediawiki/extensions/
-            !mediawiki/vendor/
-          key: mw-${{ inputs.mw }}-${{ inputs.repo }}-php${{ inputs.php }}-v2
+    - name: Install dependencies
+      run: |
+        composer validate
+        composer update
+        npm install --save-dev
+    - name: Check PHP
+      if: ${{ inputs.mw == 'master' }}
+      run: |
+        sh phpcbf.sh
+        composer fix
+        composer test
+    - name: Check i18n
+      if: ${{ inputs.mw == 'master' }}
+      run: |
+        npm run lint:i18n
+    - name: Cache MediaWiki
+      id: cache-mediawiki
+      uses: actions/cache@v2
+      with:
+        path: |
+          mediawiki
+          !mediawiki/extensions/
+          !mediawiki/vendor/
+        key: mw-${{ inputs.mw }}-${{ inputs.repo }}-php${{ inputs.php }}-v2
 
-      - name: Cache Composer cache
-        uses: actions/cache@v2
-        with:
-          path: ~/.composer/cache
-          key: composer-php${{ inputs.php }}
+    - name: Cache Composer cache
+      uses: actions/cache@v2
+      with:
+        path: ~/.composer/cache
+        key: composer-php${{ inputs.php }}
 
-      - name: Download MediaWiki
-        if: steps.cache-mediawiki.outputs.cache-hit != 'true'
-        run: bash .github/workflows/download-mediawiki.sh ${{ inputs.mw }} ${{ inputs.repo }}
+    - name: Download MediaWiki
+      if: steps.cache-mediawiki.outputs.cache-hit != 'true'
+      run: bash .github/workflows/download-mediawiki.sh ${{ inputs.mw }} ${{ inputs.repo }}
 
-      - name: Clone extension dependencies
-        if: ${{ inputs.repo != 'miraheze' }}
-        run: |
-          rm -rf mediawiki/extensions/*
-          git clone https://github.com/wikimedia/mediawiki-extensions-CentralAuth.git --depth=1 --branch=${{ inputs.mw }} mediawiki/extensions/CentralAuth
-          git clone https://github.com/wikimedia/mediawiki-extensions-BlogPage.git --depth=1 mediawiki/extensions/BlogPage
-          git clone https://github.com/wikimedia/mediawiki-extensions-SocialProfile.git --depth=1 mediawiki/extensions/SocialProfile
-          git clone https://github.com/Universal-Omega/SimpleBlogPage.git --depth=1 mediawiki/extensions/SimpleBlogPage
-      - name: Checkout extension dependencies
-        if: ${{ inputs.repo == 'miraheze' }}
-        run: |
-          cd mediawiki
-          rm -rf extensions/*
-          git submodule update --init extensions/CentralAuth
-          git submodule update --init extensions/BlogPage
-          git submodule update --init extensions/SimpleBlogPage
-          git submodule update --init extensions/SocialProfile
-      - name: Run phan
-        continue-on-error: ${{ inputs.continue-on-error }}
-        run: |
-          composer phan
-      # Only patch code when it is a push event
-      - name: Push the changes
-        if: github.event_name == 'push' && inputs.mw == 'master'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@users.noreply.github.com"
-          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git add .
-          git commit -am "CI: lint code to MediaWiki standards" -m "Check commit and GitHub actions for more details" || echo "No changes to commit"
-          git pull --rebase
-          git push
+    - name: Clone extension dependencies
+      if: ${{ inputs.repo != 'miraheze' }}
+      run: |
+        rm -rf mediawiki/extensions/*
+        git clone https://github.com/wikimedia/mediawiki-extensions-CentralAuth.git --depth=1 --branch=${{ inputs.mw }} mediawiki/extensions/CentralAuth
+        git clone https://github.com/wikimedia/mediawiki-extensions-BlogPage.git --depth=1 mediawiki/extensions/BlogPage
+        git clone https://github.com/wikimedia/mediawiki-extensions-SocialProfile.git --depth=1 mediawiki/extensions/SocialProfile
+        git clone https://github.com/Universal-Omega/SimpleBlogPage.git --depth=1 mediawiki/extensions/SimpleBlogPage
+    - name: Checkout extension dependencies
+      if: ${{ inputs.repo == 'miraheze' }}
+      run: |
+        cd mediawiki
+        rm -rf extensions/*
+        git submodule update --init extensions/CentralAuth
+        git submodule update --init extensions/BlogPage
+        git submodule update --init extensions/SimpleBlogPage
+        git submodule update --init extensions/SocialProfile
+    - name: Run phan
+      continue-on-error: ${{ inputs.continue-on-error }}
+      run: |
+        composer phan
+    # Only patch code when it is a push event
+    - name: Push the changes
+      if: github.event_name == 'push' && inputs.mw == 'master'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        git config --global user.name "github-actions"
+        git config --global user.email "github-actions@users.noreply.github.com"
+        git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+        git add .
+        git commit -am "CI: lint code to MediaWiki standards" -m "Check commit and GitHub actions for more details" || echo "No changes to commit"
+        git pull --rebase
+        git push
